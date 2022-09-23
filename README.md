@@ -1,4 +1,6 @@
-### This Project will document the solutions to Danny Ma's SQL Challenge Case Studies. It is meant to be for 8 weeks but I will take it easy on myself and just set a goal of solving a minimum of a question per day.
+### This Project will document the solutions to Danny Ma's SQL Challenge Case Studies. 
+
+It is meant to be for 8 weeks but I will take it easy on myself and just set a goal of solving a minimum of a question per day.
 
 Here's a link to the Challenge https://8weeksqlchallenge.com/getting-started/
 
