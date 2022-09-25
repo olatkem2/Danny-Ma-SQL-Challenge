@@ -24,4 +24,13 @@ Each of the following case study questions can be answered using a single SQL st
 
 --- 1. Answer
 
+SELECT sa.customer_id, SUM(me.price) AS total_amount
+FROM  dbo.sales AS sa
+LEFT OUTER JOIN dbo.menu AS me
+ON sa.product_id = me.product_id
+GROUP BY sa.customer_id 
 
+-- 2. Answer
+
+SELECT customer_id
+FROM dbo.sales 
