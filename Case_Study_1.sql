@@ -28,9 +28,27 @@ SELECT sa.customer_id, SUM(me.price) AS total_amount
 FROM  dbo.sales AS sa
 LEFT OUTER JOIN dbo.menu AS me
 ON sa.product_id = me.product_id
-GROUP BY sa.customer_id 
+GROUP BY sa.customer_id;
 
 -- 2. Answer
 
-SELECT customer_id
+SELECT customer_id, COUNT(DISTINCT order_date) AS no_of_days
 FROM dbo.sales 
+GROUP BY customer_id;
+
+-- 3. Answer
+
+WITH temp AS 
+
+(SELECT se.customer_id, me.product_name, se.order_date,
+RANK() OVER(PARTITION BY se.customer_id ORDER BY se.order_date) as rank
+FROM dbo.sales as se
+LEFT JOIN dbo.menu AS me
+ON se.product_id = me.product_id)
+
+SELECT t.customer_id, t.product_name
+FROM temp AS t
+WHERE rank = 1
+
+-- 4. Answer
+
