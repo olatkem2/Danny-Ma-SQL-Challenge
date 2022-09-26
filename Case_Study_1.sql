@@ -135,10 +135,46 @@ SELECT t.customer_id,
     COUNT(*) AS total_item, 
     SUM(t.price) AS total_amount
 FROM temp AS t
-GROUP BY t.customer_id
+GROUP BY t.customer_id;
 
 -- 9. Answer
 
+ SELECT se.customer_id, SUM(me.points_earned) AS points_earned
+ FROM sales AS se
+ LEFT JOIN
+    (
+     SELECT me.product_id, me.product_name, me.price, 
+        CASE WHEN me.product_id = 1 THEN me.price * 20
+        ELSE me.price * 10
+     END AS points_earned
+     FROM menu AS me
+    ) AS me
+ON se.product_id=me.product_id
+GROUP BY se.customer_id;
+
+-- 10. Answer
+
+WITH temp AS 
+   (
+    SELECT se.customer_id, me.product_name, me.price, se.order_date, m.join_date, 
+    CAST(DATENAME(WEEK, se.order_date) AS int) AS 'order_week',
+    CAST(DATENAME(WEEK, m.join_date) AS int) AS 'join_week',
+    CAST(DATENAME(WEEK, se.order_date) AS int) - CAST(DATENAME(WEEK, m.join_date) AS int) AS week_diff
+    FROM dbo.sales as se
+    LEFT JOIN dbo.menu AS me
+    ON se.product_id = me.product_id
+    LEFT JOIN dbo.members AS m
+    ON se.customer_id = m.customer_id
+    WHERE se.order_date >= m.join_date
+   )
+
+SELECT t.customer_id,
+        SUM(CASE WHEN t.week_diff < 2 THEN t.price *20
+            ELSE t.price * 10
+        END) AS points_earned
+FROM temp AS t
+WHERE t.week_diff<2
+GROUP BY t.customer_id
 
 
 
