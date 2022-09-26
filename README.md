@@ -23,3 +23,11 @@ Here's a link to the Challenge https://8weeksqlchallenge.com/getting-started/
 ## Follow along with the database and case studies below;
 
 1. Case Study #1: Danny's Dinner - https://8weeksqlchallenge.com/case-study-1/
+2. Case Study #2: Pizza Runner   - https://8weeksqlchallenge.com/case-study-2/
+
+
+
+
+Feel free to attempt the challenges and happy data lounging!!!
+
+Thank you!!!
