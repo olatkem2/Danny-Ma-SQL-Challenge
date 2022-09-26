@@ -24,7 +24,8 @@ Each of the following case study questions can be answered using a single SQL st
 
 --- 1. Answer
 
-SELECT sa.customer_id, SUM(me.price) AS total_amount
+SELECT sa.customer_id, 
+       SUM(me.price) AS total_amount
 FROM  dbo.sales AS sa
 LEFT OUTER JOIN dbo.menu AS me
 ON sa.product_id = me.product_id
@@ -32,7 +33,8 @@ GROUP BY sa.customer_id;
 
 -- 2. Answer
 
-SELECT customer_id, COUNT(DISTINCT order_date) AS no_of_days
+SELECT customer_id, 
+       COUNT(DISTINCT order_date) AS no_of_days
 FROM dbo.sales 
 GROUP BY customer_id;
 
@@ -53,7 +55,8 @@ WHERE rank = 1;
 
 -- 4. Answer
 
-SELECT  TOP 1 me.product_name, COUNT(se.product_id) AS no_of_purchased_items
+SELECT  TOP 1 me.product_name, 
+        COUNT(se.product_id) AS no_of_purchased_items
 FROM dbo.sales as se
 LEFT JOIN dbo.menu AS me
 ON se.product_id = me.product_id
@@ -64,7 +67,8 @@ ORDER BY no_of_purchased_items DESC;
 
 WITH temp AS 
     (
-    SELECT se.customer_id, me.product_name, COUNT(se.product_id) AS no_of_purchased_items,
+    SELECT se.customer_id, me.product_name, 
+            COUNT(se.product_id) AS no_of_purchased_items,
             RANK() OVER(PARTITION BY se.customer_id ORDER BY COUNT(se.product_id) DESC) AS rank
     FROM dbo.sales as se
     LEFT JOIN dbo.menu AS me
@@ -96,6 +100,50 @@ FROM temp AS t
 WHERE rank = 1;
 
 -- 7. Answer
+
+WITH temp AS 
+    (
+    SELECT se.customer_id, me.product_name, se.order_date, m.join_date,
+    RANK() OVER(PARTITION BY se.customer_id ORDER BY se.order_date) as rank
+    FROM dbo.sales as se
+    LEFT JOIN dbo.menu AS me
+    ON se.product_id = me.product_id
+    LEFT JOIN dbo.members AS m
+    ON se.customer_id = m.customer_id
+    WHERE se.order_date < m.join_date
+    )
+
+SELECT t.customer_id, t.product_name --t.order_date, t.join_date, t.rank
+FROM temp AS t
+WHERE rank=1;
+
+-- 8. Answer
+
+WITH temp AS 
+    (
+    SELECT se.customer_id, me.product_name, me.price, se.order_date, m.join_date,
+    RANK() OVER(PARTITION BY se.customer_id ORDER BY se.order_date) as rank
+    FROM dbo.sales as se
+    LEFT JOIN dbo.menu AS me
+    ON se.product_id = me.product_id
+    LEFT JOIN dbo.members AS m
+    ON se.customer_id = m.customer_id
+    WHERE se.order_date < m.join_date
+    )
+
+SELECT t.customer_id,
+    COUNT(*) AS total_item, 
+    SUM(t.price) AS total_amount
+FROM temp AS t
+GROUP BY t.customer_id
+
+-- 9. Answer
+
+
+
+
+
+
 
 
 
