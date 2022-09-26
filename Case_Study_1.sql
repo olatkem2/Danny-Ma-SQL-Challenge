@@ -79,4 +79,25 @@ ORDER BY t.customer_id ASC, t.no_of_purchased_items DESC;
 
 -- 6. Answer
 
+WITH temp AS 
+    (
+    SELECT se.customer_id, me.product_name, se.order_date, m.join_date,
+    RANK() OVER(PARTITION BY se.customer_id ORDER BY se.order_date) as rank
+    FROM dbo.sales as se
+    LEFT JOIN dbo.menu AS me
+    ON se.product_id = me.product_id
+    LEFT JOIN dbo.members AS m
+    ON se.customer_id = m.customer_id
+    WHERE se.order_date > m.join_date
+    )
+
+SELECT t.customer_id, t.product_name -- t.order_date, t.join_date, t.rank
+FROM temp AS t
+WHERE rank = 1;
+
+-- 7. Answer
+
+
+
+
 
