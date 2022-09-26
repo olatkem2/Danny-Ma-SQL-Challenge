@@ -39,16 +39,44 @@ GROUP BY customer_id;
 -- 3. Answer
 
 WITH temp AS 
-
-(SELECT se.customer_id, me.product_name, se.order_date,
-RANK() OVER(PARTITION BY se.customer_id ORDER BY se.order_date) as rank
-FROM dbo.sales as se
-LEFT JOIN dbo.menu AS me
-ON se.product_id = me.product_id)
+    (
+    SELECT se.customer_id, me.product_name, se.order_date,
+    RANK() OVER(PARTITION BY se.customer_id ORDER BY se.order_date) as rank
+    FROM dbo.sales as se
+    LEFT JOIN dbo.menu AS me
+    ON se.product_id = me.product_id
+    )
 
 SELECT t.customer_id, t.product_name
 FROM temp AS t
-WHERE rank = 1
+WHERE rank = 1;
 
 -- 4. Answer
+
+SELECT  TOP 1 me.product_name, COUNT(se.product_id) AS no_of_purchased_items
+FROM dbo.sales as se
+LEFT JOIN dbo.menu AS me
+ON se.product_id = me.product_id
+GROUP BY me.product_name
+ORDER BY no_of_purchased_items DESC;
+
+-- 5. Answer
+
+WITH temp AS 
+    (
+    SELECT se.customer_id, me.product_name, COUNT(se.product_id) AS no_of_purchased_items,
+            RANK() OVER(PARTITION BY se.customer_id ORDER BY COUNT(se.product_id) DESC) AS rank
+    FROM dbo.sales as se
+    LEFT JOIN dbo.menu AS me
+    ON se.product_id = me.product_id
+    GROUP BY se.customer_id, me.product_name
+    )
+
+SELECT t.customer_id, t.product_name, t.no_of_purchased_items, t.rank
+FROM temp AS t
+WHERE rank=1
+ORDER BY t.customer_id ASC, t.no_of_purchased_items DESC;
+
+-- 6. Answer
+
 
