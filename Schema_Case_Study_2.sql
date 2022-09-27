@@ -1,4 +1,4 @@
-CREATE SCHEMA pizza_runner;
+CREATE SCHEMA pizza_runner; -- Run this as a single batch if using MS SQL Server without the SET condition
 SET search_path = pizza_runner;
 
 DROP TABLE IF EXISTS runners;
@@ -6,7 +6,6 @@ CREATE TABLE runners (
   "runner_id" INTEGER,
   "registration_date" DATE
 );
-
 INSERT INTO runners
   ("runner_id", "registration_date")
 VALUES
@@ -23,7 +22,7 @@ CREATE TABLE customer_orders (
   "pizza_id" INTEGER,
   "exclusions" VARCHAR(4),
   "extras" VARCHAR(4),
-  "order_time" TIMESTAMP
+  "order_time" TIMESTAMP -- Use DATETIME if using MS SQL Server
 );
 
 INSERT INTO customer_orders
