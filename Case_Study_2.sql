@@ -74,12 +74,12 @@ E. Bonus Questions
 
 SELECT * 
 FROM
--- dbo.runners
-dbo.customer_orders;
--- dbo.runner_orders
--- dbo.pizza_names
--- dbo.pizza_recipes
--- dbo.pizza_toppings
+-- dbo.runners;
+--dbo.customer_orders;
+ dbo.runner_orders;
+-- dbo.pizza_names;
+-- dbo.pizza_recipes;
+-- dbo.pizza_toppings;
 
 -- A. Pizza Metrics 
 
@@ -95,22 +95,48 @@ FROM   dbo.customer_orders;
     GROUP BY customer_id
     ORDER BY unique_orders DESC  */
 SELECT COUNT(DISTINCT order_id) AS total_unique_orders
-FROM dbo.customer_orders
+FROM dbo.customer_orders;
 
 -- 3. Answer
+
 WITH temp AS
-    (
-    SELECT runner_id, order_id
-        CASE WHEN cancellation = '' THEN NULL
-            CASE WHEN cancellation = '' THEN NULL
+    (SELECT runner_id, order_id, pickup_time, distance, duration, 
+        CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
             ELSE cancellation
         END AS cleansed_cancellation
     FROM dbo.runner_orders)
 
-SELECT t.runner_id, COUNT(t.order_id) AS no_of_successful_orders,
+SELECT t.runner_id, COUNT(t.order_id) AS no_of_successful_orders
 FROM temp AS t
-WHERE cancellation NOT IN ('Restaurant Cancellation', 'Customer Cancellation') 
-GROUP BY t.runner_id
+WHERE cleansed_cancellation IS NULL
+GROUP BY t.runner_id;
 
+-- 4. Answer
 
+SELECT pn.pizza_id, CAST(pn.pizza_name AS VARCHAR), COUNT(ro.order_id) AS no_of_delivered_pizzas
+FROM 
+    (SELECT runner_id, order_id, pickup_time, distance, duration, 
+        CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation
+    FROM dbo.runner_orders) AS ro
+INNER JOIN dbo.customer_orders AS co
+ON ro.order_id=co.order_id
+INNER JOIN dbo.pizza_names AS pn
+ON co.pizza_id=pn.pizza_id
+WHERE ro.cleansed_cancellation IS NULL
+GROUP BY pn.pizza_id, CAST(pn.pizza_name AS VARCHAR)  -- To cater for the TEXT field
+
+-- 5. Answer
+
+SELECT co.customer_id, CAST(pn.pizza_name AS VARCHAR), COUNT(co.order_id) AS no_of_ordered_pizza
+FROM dbo.customer_orders AS co
+INNER JOIN dbo.pizza_names AS pn
+ON co.pizza_id=pn.pizza_id
+GROUP BY co.customer_id, CAST(pn.pizza_name AS VARCHAR) -- To cater for the TEXT field
+ORDER BY co.customer_id ASC;
 
