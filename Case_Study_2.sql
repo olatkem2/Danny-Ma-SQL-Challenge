@@ -81,8 +81,36 @@ dbo.customer_orders;
 -- dbo.pizza_recipes
 -- dbo.pizza_toppings
 
--- Pizza Metrics 
+-- A. Pizza Metrics 
+
 -- 1. Answer
 
-SELECT COUNT(*) AS no_of_pizza_ordered
-FROM dbo.customer_orders;
+SELECT COUNT(pizza_id) AS no_of_pizza_ordered
+FROM   dbo.customer_orders;
+
+-- 2. Answer
+
+/*  SELECT customer_id, COUNT(DISTINCT order_id) AS unique_orders
+    FROM dbo.customer_orders -- This is calculate total unique orders per customer
+    GROUP BY customer_id
+    ORDER BY unique_orders DESC  */
+SELECT COUNT(DISTINCT order_id) AS total_unique_orders
+FROM dbo.customer_orders
+
+-- 3. Answer
+WITH temp AS
+    (
+    SELECT runner_id, order_id
+        CASE WHEN cancellation = '' THEN NULL
+            CASE WHEN cancellation = '' THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation
+    FROM dbo.runner_orders)
+
+SELECT t.runner_id, COUNT(t.order_id) AS no_of_successful_orders,
+FROM temp AS t
+WHERE cancellation NOT IN ('Restaurant Cancellation', 'Customer Cancellation') 
+GROUP BY t.runner_id
+
+
+
