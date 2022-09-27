@@ -140,14 +140,14 @@ GROUP BY t.customer_id;
 -- 9. Answer
 
  SELECT se.customer_id, SUM(me.points_earned) AS points_earned
- FROM sales AS se
+ FROM dbo.sales AS se
  LEFT JOIN
     (
      SELECT me.product_id, me.product_name, me.price, 
         CASE WHEN me.product_id = 1 THEN me.price * 20
         ELSE me.price * 10
      END AS points_earned
-     FROM menu AS me
+     FROM dbo.menu AS me
     ) AS me
 ON se.product_id=me.product_id
 GROUP BY se.customer_id;
