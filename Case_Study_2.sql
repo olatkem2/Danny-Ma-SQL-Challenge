@@ -75,8 +75,8 @@ E. Bonus Questions
 SELECT * 
 FROM
 -- dbo.runners;
---dbo.customer_orders;
- dbo.runner_orders;
+dbo.customer_orders;
+-- dbo.runner_orders;
 -- dbo.pizza_names;
 -- dbo.pizza_recipes;
 -- dbo.pizza_toppings;
@@ -140,3 +140,62 @@ ON co.pizza_id=pn.pizza_id
 GROUP BY co.customer_id, CAST(pn.pizza_name AS VARCHAR) -- To cater for the TEXT field
 ORDER BY co.customer_id ASC;
 
+--5. Alternative Answer
+
+SELECT customer_id,
+    COALESCE(SUM(CASE WHEN pizza_id=1 THEN 1 END),0) AS 'meat_lovers',
+    COALESCE(SUM(CASE WHEN pizza_id=2 THEN 1 END),0) AS 'vegetarian' -- Still NOT clear but it worked!!!
+FROM customer_orders
+GROUP BY customer_id;
+
+-- 6. Answer
+
+SELECT co.order_id, COUNT(ro.order_id) AS no_of_delivered_pizzas
+     FROM 
+        (SELECT runner_id, order_id, pickup_time, distance, duration, 
+            CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+                ELSE cancellation
+            END AS cleansed_cancellation
+        FROM dbo.runner_orders) AS ro
+INNER JOIN dbo.customer_orders AS co
+ON ro.order_id=co.order_id
+WHERE ro.cleansed_cancellation IS NULL
+GROUP BY co.order_id
+ORDER BY COUNT(ro.order_id) DESC;
+
+-- 7. Answer
+
+WITH temp AS 
+
+(SELECT co.customer_id, ro.order_id, co.cleansed_exclusions, co.cleansed_extras
+  FROM 
+        (SELECT runner_id, order_id, pickup_time, distance, duration, 
+            CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+                ELSE cancellation
+            END AS cleansed_cancellation
+        FROM dbo.runner_orders) AS ro
+  INNER JOIN 
+    (SELECT order_id, customer_id, pizza_id, order_time,
+            CASE exclusions
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE exclusions
+            END AS cleansed_exclusions,
+            CASE extras
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE extras
+            END AS cleansed_extras
+        FROM dbo.customer_orders) AS co
+   ON ro.order_id=co.order_id
+   WHERE cleansed_cancellation IS NULL)
+
+SELECT t.customer_id,
+    COALESCE(SUM(CASE WHEN t.cleansed_exclusions+t.cleansed_extras IS NULL THEN 1 END),0) AS 'no_change',
+    COALESCE(SUM(CASE WHEN t.cleansed_extras+t.cleansed_extras IS NOT NULL THEN 1 END),0) AS 'change'
+FROM temp AS t
+GROUP BY t.customer_id;
