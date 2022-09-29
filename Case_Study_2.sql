@@ -150,7 +150,7 @@ GROUP BY customer_id;
 
 -- 6. Answer
 
-SELECT co.order_id, COUNT(ro.order_id) AS no_of_delivered_pizzas
+SELECT TOP 1 co.order_id, COUNT(ro.order_id) AS no_of_delivered_pizzas
      FROM 
         (SELECT runner_id, order_id, pickup_time, distance, duration, 
             CASE cancellation 
@@ -195,7 +195,69 @@ WITH temp AS
    WHERE cleansed_cancellation IS NULL)
 
 SELECT t.customer_id,
-    COALESCE(SUM(CASE WHEN t.cleansed_exclusions+t.cleansed_extras IS NULL THEN 1 END),0) AS 'no_change',
-    COALESCE(SUM(CASE WHEN t.cleansed_extras+t.cleansed_extras IS NOT NULL THEN 1 END),0) AS 'change'
-FROM temp AS t
+    COUNT(CASE WHEN t.is_change=0 THEN 0 END) AS no_change,
+    COUNT(CASE WHEN t.is_change=1 THEN 1 END) AS change
+FROM 
+    (SELECT t.*,
+            CASE WHEN t.cleansed_exclusions IS NULL AND t.cleansed_extras IS NULL THEN 0 ELSE 1 END AS is_change
+       FROM temp AS t) AS t
 GROUP BY t.customer_id;
+
+-- 8. Answer
+
+WITH temp AS 
+
+(SELECT co.customer_id, ro.order_id, co.cleansed_exclusions, co.cleansed_extras
+  FROM 
+        (SELECT runner_id, order_id, pickup_time, distance, duration, 
+            CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+                ELSE cancellation
+            END AS cleansed_cancellation
+        FROM dbo.runner_orders) AS ro
+  INNER JOIN 
+    (SELECT order_id, customer_id, pizza_id, order_time,
+            CASE exclusions
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE exclusions
+            END AS cleansed_exclusions,
+            CASE extras
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE extras
+            END AS cleansed_extras
+        FROM dbo.customer_orders) AS co
+   ON ro.order_id=co.order_id
+   WHERE cleansed_cancellation IS NULL)
+
+SELECT t.customer_id, COUNT(*) AS order_with_both_modification
+FROM temp AS t
+WHERE (t.cleansed_exclusions IS NOT NULL) AND (t.cleansed_extras IS NOT NULL)
+GROUP BY t.customer_id;
+
+-- 9. Answer
+
+SELECT 
+--  DATENAME(DAY,co.order_time) AS order_day,
+    DATENAME(HOUR, co.order_time) AS order_hour,
+    COUNT(co.order_id) AS no_of_ordered_pizza
+FROM dbo.customer_orders AS co
+GROUP BY DATENAME(HOUR, co.order_time)
+ORDER BY no_of_ordered_pizza DESC;
+
+-- 10. Answer
+
+SELECT 
+    DATENAME(WEEKDAY,co.order_time) AS day_of_week_1,
+    DATEPART(WEEKDAY,co.order_time) AS day_of_week_2,
+--  DATENAME(HOUR, co.order_time) AS order_hour,
+    COUNT(co.order_id) AS no_of_ordered_pizza
+FROM dbo.customer_orders AS co
+GROUP BY DATENAME(WEEKDAY,co.order_time), DATEPART(WEEKDAY,co.order_time)
+ORDER BY no_of_ordered_pizza DESC;
+
+-- A. Pizza Metrics 
+
+-- 1. Answer
