@@ -74,8 +74,8 @@ E. Bonus Questions
 
 SELECT * 
 FROM
--- dbo.runners;
-dbo.customer_orders;
+dbo.runners;
+-- dbo.customer_orders;
 -- dbo.runner_orders;
 -- dbo.pizza_names;
 -- dbo.pizza_recipes;
@@ -115,7 +115,7 @@ GROUP BY t.runner_id;
 
 -- 4. Answer
 
-SELECT pn.pizza_id, CAST(pn.pizza_name AS VARCHAR), COUNT(ro.order_id) AS no_of_delivered_pizzas
+SELECT pn.pizza_id, CAST(pn.pizza_name AS VARCHAR) AS pizza_type, COUNT(ro.order_id) AS no_of_delivered_pizzas
 FROM 
     (SELECT runner_id, order_id, pickup_time, distance, duration, 
         CASE cancellation 
@@ -129,11 +129,11 @@ ON ro.order_id=co.order_id
 INNER JOIN dbo.pizza_names AS pn
 ON co.pizza_id=pn.pizza_id
 WHERE ro.cleansed_cancellation IS NULL
-GROUP BY pn.pizza_id, CAST(pn.pizza_name AS VARCHAR)  -- To cater for the TEXT field
+GROUP BY pn.pizza_id, CAST(pn.pizza_name AS VARCHAR)   -- To cater for the TEXT field
 
 -- 5. Answer
 
-SELECT co.customer_id, CAST(pn.pizza_name AS VARCHAR), COUNT(co.order_id) AS no_of_ordered_pizza
+SELECT co.customer_id, CAST(pn.pizza_name AS VARCHAR) AS pizza_type, COUNT(co.order_id) AS no_of_ordered_pizza
 FROM dbo.customer_orders AS co
 INNER JOIN dbo.pizza_names AS pn
 ON co.pizza_id=pn.pizza_id
@@ -163,7 +163,7 @@ INNER JOIN dbo.customer_orders AS co
 ON ro.order_id=co.order_id
 WHERE ro.cleansed_cancellation IS NULL
 GROUP BY co.order_id
-ORDER BY COUNT(ro.order_id) DESC;
+ORDER BY no_of_delivered_pizzas DESC;
 
 -- 7. Answer
 
@@ -258,6 +258,107 @@ FROM dbo.customer_orders AS co
 GROUP BY DATENAME(WEEKDAY,co.order_time), DATEPART(WEEKDAY,co.order_time)
 ORDER BY no_of_ordered_pizza DESC;
 
--- A. Pizza Metrics 
+-- B. Runner and Customer Experience
 
 -- 1. Answer
+
+SELECT CONCAT('Week ',DATEPART(WEEK, registration_date)) AS week,
+       COUNT(*) AS no_of_runners
+FROM dbo.runners
+GROUP BY CONCAT('Week ',DATEPART(WEEK, registration_date))
+ORDER BY no_of_runners DESC;
+
+-- 2. Answer
+
+WITH cleansed_runner_orders AS
+    (
+    SELECT C.* FROM (
+    SELECT runner_id, order_id, distance, duration, 
+        CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation,
+        CASE pickup_time
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE TRY_CAST(pickup_time AS DATETIME)
+        END AS cleansed_pickup_time
+    FROM dbo.runner_orders) AS C
+    WHERE cleansed_pickup_time IS NOT NULL
+    ),
+     customer_orders AS 
+       (
+       SELECT DISTINCT order_id, order_time
+       FROM dbo.customer_orders
+        ) 
+SELECT ro.runner_id, AVG(DATEDIFF(MINUTE,co.order_time, ro.cleansed_pickup_time)) AS avg_pickup_min
+FROM customer_orders AS co
+INNER JOIN cleansed_runner_orders AS ro
+ON ro.order_id=co.order_id
+GROUP BY ro.runner_id
+
+-- 3. Answer
+-- There is a positive relationship between number of pizza and the average time it takes to prepare
+
+WITH cleansed_runner_orders AS
+    (
+    SELECT C.* FROM (
+    SELECT runner_id, order_id, distance, duration, 
+        CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation,
+        CASE pickup_time
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE TRY_CAST(pickup_time AS DATETIME)
+        END AS cleansed_pickup_time
+    FROM dbo.runner_orders) AS C
+    WHERE cleansed_pickup_time IS NOT NULL
+    ),
+     customer_orders AS 
+       (
+       SELECT order_id, COUNT(*) AS no_of_pizza, order_time
+       FROM dbo.customer_orders
+       GROUP BY order_id, order_time
+        ) 
+SELECT co.no_of_pizza, 
+    (AVG(DATEDIFF(MINUTE,co.order_time, ro.cleansed_pickup_time))*60) AS avg_pickup_sec
+FROM  cleansed_runner_orders AS ro
+INNER JOIN customer_orders AS co
+ON ro.order_id=co.order_id
+GROUP BY co.no_of_pizza;
+
+-- 4. Answer
+
+ WITH runner_order AS 
+   (
+    SELECT runner_id, order_id,
+       CASE distance
+            WHEN 'null' THEN NULL
+       ELSE REPLACE(distance, 'km', '')
+       END AS cleansed_distance,
+       CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation
+    FROM dbo.runner_orders
+   ),
+     customer_order AS
+   (
+    SELECT customer_id, order_id
+    FROM dbo.customer_orders
+   )
+SELECT co.customer_id, ROUND(AVG(CAST(ro.cleansed_distance AS FLOAT)), 1)
+FROM runner_order AS ro
+INNER JOIN customer_order AS co
+ON ro.order_id=co.order_id
+WHERE ro.cleansed_cancellation IS NULL
+GROUP BY co.customer_id; 
+
+-- 5. Answer
+
+
