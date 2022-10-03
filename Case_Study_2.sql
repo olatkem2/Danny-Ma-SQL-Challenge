@@ -373,19 +373,23 @@ GROUP BY co.customer_id;
                 WHEN 'null' THEN NULL
             ELSE cancellation
         END AS cleansed_cancellation,
-       CASE duration
-                WHEN 'null' THEN NULL
-                -- CASE WHEN '' THEN NULL
+            CASE
+                WHEN duration = 'null' THEN NULL
+                WHEN duration = '' THEN NULL
+                WHEN duration LIKE '%_minute' THEN REPLACE(duration, 'minute', '')
+                WHEN duration LIKE '%_mins' THEN REPLACE(duration, 'mins', '')
             ELSE REPLACE(duration, 'minutes', '')  
        END AS cleansed_duration
     FROM dbo.runner_orders
    )
 
-SELECT CAST(longest_del AS INT)-CAST(shortest_del AS INT) AS diff_btw_longest_shortest_dis
+SELECT longest_dur, shortest_dur, 
+        CAST(longest_dur AS INT)-CAST(shortest_dur AS INT) AS diff_btw_longest_shortest_dur
 FROM 
-    (SELECT MAX(cleansed_distance) AS longest_del, MIN(cleansed_distance) AS shortest_del
+    (SELECT MAX(cleansed_duration) AS longest_dur, MIN(cleansed_duration) AS shortest_dur
      FROM runner_order) AS x
 
+-- 6. Answer
 
 
 
