@@ -364,22 +364,24 @@ GROUP BY co.customer_id;
  WITH runner_order AS 
    (
     SELECT runner_id, order_id,
-       CASE distance
-                WHEN 'null' THEN NULL
-       ELSE REPLACE(distance, 'km', '')
-       END AS cleansed_distance,
-       CASE cancellation 
-                WHEN '' THEN NULL 
-                WHEN 'null' THEN NULL
+        CASE
+                WHEN distance IN ('', 'null') THEN NULL
+            ELSE REPLACE(distance, 'km', '')
+        END AS cleansed_distance,
+        CASE 
+                WHEN cancellation IN ('','null') THEN NULL
             ELSE cancellation
         END AS cleansed_cancellation,
-            CASE
-                WHEN duration = 'null' THEN NULL
-                WHEN duration = '' THEN NULL
+        CASE
+                WHEN pickup_time IN ('','null') THEN NULL
+                ELSE TRY_CAST(pickup_time AS DATETIME)
+        END AS cleansed_pickup_time,
+        CASE
+                WHEN duration IN ('null','') THEN NULL
                 WHEN duration LIKE '%_minute' THEN REPLACE(duration, 'minute', '')
                 WHEN duration LIKE '%_mins' THEN REPLACE(duration, 'mins', '')
             ELSE REPLACE(duration, 'minutes', '')  
-       END AS cleansed_duration
+        END AS cleansed_duration
     FROM dbo.runner_orders
    )
 
@@ -390,6 +392,8 @@ FROM
      FROM runner_order) AS x
 
 -- 6. Answer
+
+
 
 
 
