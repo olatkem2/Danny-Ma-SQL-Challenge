@@ -384,14 +384,82 @@ GROUP BY co.customer_id;
         END AS cleansed_duration
     FROM dbo.runner_orders
    )
-
 SELECT longest_dur, shortest_dur, 
         CAST(longest_dur AS INT)-CAST(shortest_dur AS INT) AS diff_btw_longest_shortest_dur
 FROM 
     (SELECT MAX(cleansed_duration) AS longest_dur, MIN(cleansed_duration) AS shortest_dur
-     FROM runner_order) AS x
+     FROM runner_order) AS x;
 
 -- 6. Answer
+
+ WITH runner_order AS 
+   (
+    SELECT runner_id, order_id,
+        CASE
+                WHEN distance IN ('', 'null') THEN NULL
+            ELSE REPLACE(distance, 'km', '')
+        END AS cleansed_distance,
+        CASE 
+                WHEN cancellation IN ('','null') THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation,
+        CASE
+                WHEN pickup_time IN ('','null') THEN NULL
+                ELSE TRY_CAST(pickup_time AS DATETIME)
+        END AS cleansed_pickup_time,
+        CASE
+                WHEN duration IN ('null','') THEN NULL
+                WHEN duration LIKE '%_minute' THEN REPLACE(duration, 'minute', '')
+                WHEN duration LIKE '%_mins' THEN REPLACE(duration, 'mins', '')
+            ELSE REPLACE(duration, 'minutes', '')  
+        END AS cleansed_duration
+    FROM dbo.runner_orders
+   )
+SELECT runner_id, order_id, CAST(cleansed_distance AS FLOAT)/(CAST(cleansed_duration AS INT)/60.0) AS speed_kmph
+FROM runner_order AS r
+WHERE cleansed_duration IS NOT NULL
+ORDER BY runner_id;
+
+-- 7. Answer
+
+ WITH runner_order AS 
+   (
+    SELECT runner_id, order_id,
+        CASE
+                WHEN distance IN ('', 'null') THEN NULL
+            ELSE REPLACE(distance, 'km', '')
+        END AS cleansed_distance,
+        CASE 
+                WHEN cancellation IN ('','null') THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation,
+        CASE
+                WHEN pickup_time IN ('','null') THEN NULL
+                ELSE TRY_CAST(pickup_time AS DATETIME)
+        END AS cleansed_pickup_time,
+        CASE
+                WHEN duration IN ('null','') THEN NULL
+                WHEN duration LIKE '%_minute' THEN REPLACE(duration, 'minute', '')
+                WHEN duration LIKE '%_mins' THEN REPLACE(duration, 'mins', '')
+            ELSE REPLACE(duration, 'minutes', '')  
+        END AS cleansed_duration
+    FROM dbo.runner_orders
+   )
+
+SELECT runner_id, is_successful, is_not_successful,
+        CAST(is_successful AS FLOAT)/CAST(total_del AS FLOAT)*100 AS percent_successful
+FROM
+        (SELECT runner_id,
+                COUNT(CASE WHEN cleansed_cancellation IS NULL THEN 1 END) AS is_successful,
+                COUNT(CASE WHEN cleansed_cancellation IS NOT NULL THEN 1 END) AS is_not_successful,
+                COUNT(*) AS total_del
+        FROM runner_order
+        GROUP BY runner_id) AS x
+GROUP BY runner_id, is_successful, is_not_successful, total_del;
+
+-- C. Ingredient Optimisation
+
+-- 1. Answer
 
 
 
