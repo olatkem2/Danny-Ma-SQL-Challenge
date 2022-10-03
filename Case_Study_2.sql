@@ -325,7 +325,7 @@ WITH cleansed_runner_orders AS
        GROUP BY order_id, order_time
         ) 
 SELECT co.no_of_pizza, 
-    (AVG(DATEDIFF(MINUTE,co.order_time, ro.cleansed_pickup_time))*60) AS avg_pickup_sec
+        (AVG(DATEDIFF(MINUTE,co.order_time, ro.cleansed_pickup_time))*60) AS avg_pickup_sec
 FROM  cleansed_runner_orders AS ro
 INNER JOIN customer_orders AS co
 ON ro.order_id=co.order_id
@@ -360,5 +360,53 @@ WHERE ro.cleansed_cancellation IS NULL
 GROUP BY co.customer_id; 
 
 -- 5. Answer
+
+ WITH runner_order AS 
+   (
+    SELECT runner_id, order_id,
+       CASE distance
+                WHEN 'null' THEN NULL
+       ELSE REPLACE(distance, 'km', '')
+       END AS cleansed_distance,
+       CASE cancellation 
+                WHEN '' THEN NULL 
+                WHEN 'null' THEN NULL
+            ELSE cancellation
+        END AS cleansed_cancellation,
+       CASE duration
+                WHEN 'null' THEN NULL
+                -- CASE WHEN '' THEN NULL
+            ELSE REPLACE(duration, 'minutes', '')  
+       END AS cleansed_duration
+    FROM dbo.runner_orders
+   )
+
+SELECT CAST(longest_del AS INT)-CAST(shortest_del AS INT) AS diff_btw_longest_shortest_dis
+FROM 
+    (SELECT MAX(cleansed_distance) AS longest_del, MIN(cleansed_distance) AS shortest_del
+     FROM runner_order) AS x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
