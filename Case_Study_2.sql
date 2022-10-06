@@ -352,7 +352,7 @@ GROUP BY co.no_of_pizza;
     SELECT customer_id, order_id
     FROM dbo.customer_orders
    )
-SELECT co.customer_id, ROUND(AVG(CAST(ro.cleansed_distance AS FLOAT)), 1)
+SELECT co.customer_id, (ROUND(AVG(CAST(ro.cleansed_distance AS FLOAT)), 1)) AS avg_distance
 FROM runner_order AS ro
 INNER JOIN customer_order AS co
 ON ro.order_id=co.order_id
@@ -385,9 +385,9 @@ GROUP BY co.customer_id;
     FROM dbo.runner_orders
    )
 SELECT longest_dur, shortest_dur, 
-        CAST(longest_dur AS INT)-CAST(shortest_dur AS INT) AS diff_btw_longest_shortest_dur
+        (longest_dur-shortest_dur) AS diff_btw_longest_shortest_dur
 FROM 
-    (SELECT MAX(cleansed_duration) AS longest_dur, MIN(cleansed_duration) AS shortest_dur
+    (SELECT MAX(CAST(cleansed_duration AS INT)) AS longest_dur, MIN(CAST(cleansed_duration AS INT)) AS shortest_dur
      FROM runner_order) AS x;
 
 -- 6. Answer
@@ -415,10 +415,11 @@ FROM
         END AS cleansed_duration
     FROM dbo.runner_orders
    )
-SELECT runner_id, order_id, CAST(cleansed_distance AS FLOAT)/(CAST(cleansed_duration AS INT)/60.0) AS speed_kmph
+SELECT runner_id, order_id, 
+        ROUND(CAST(cleansed_distance AS FLOAT)/(CAST(cleansed_duration AS INT)/60.0),1) AS speed_kmph
 FROM runner_order AS r
 WHERE cleansed_duration IS NOT NULL
-ORDER BY runner_id;
+ORDER BY runner_id, order_id;
 
 -- 7. Answer
 
@@ -460,6 +461,132 @@ GROUP BY runner_id, is_successful, is_not_successful, total_del;
 -- C. Ingredient Optimisation
 
 -- 1. Answer
+
+WITH pizzanames_toppings AS
+
+  (SELECT pr.pizza_id, pn.pizza_name, TRY_CAST(REPLACE(value,' ','') AS INT) AS toppings
+    FROM dbo.pizza_names AS pn
+    INNER JOIN  dbo.pizza_recipes AS pr
+    ON pn.pizza_id=pr.pizza_id
+    CROSS APPLY STRING_SPLIT(CAST(pr.toppings AS NVARCHAR), ','))
+    -- You can do this with a combo of STRING_TO_ARRAY and UNNEST(work just like STRING_SPLIT) in PostgreSQL
+
+SELECT pz.pizza_id, pz.pizza_name, pz.toppings, pt.topping_name
+FROM pizzanames_toppings AS pz
+INNER JOIN pizza_toppings AS pt
+ON pt.topping_id=pz.toppings;
+
+-- 1. Alternate
+
+WITH pizzanames_toppings AS
+
+  (SELECT pr.pizza_id, pn.pizza_name, TRY_CAST(REPLACE(value,' ','') AS INT) AS toppings
+    FROM dbo.pizza_names AS pn
+    INNER JOIN  dbo.pizza_recipes AS pr
+    ON pn.pizza_id=pr.pizza_id
+    CROSS APPLY STRING_SPLIT(CAST(pr.toppings AS NVARCHAR), ','))
+
+SELECT pz.pizza_id,
+    STRING_AGG(CAST(pt.topping_name AS NVARCHAR),',') AS topping_name
+FROM pizzanames_toppings AS pz
+INNER JOIN pizza_toppings AS pt
+ON pt.topping_id=pz.toppings
+GROUP BY pz.pizza_id;
+
+-- 2. Answer
+
+WITH customer_order AS 
+   (
+        SELECT order_id, customer_id, pizza_id, order_time, 
+            CASE exclusions
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE exclusions
+            END AS cleansed_exclusions,
+            CASE extras
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE extras
+            END AS cleansed_extras
+        FROM dbo.customer_orders      
+   ),
+    unnested_extra AS
+    (
+        SELECT pizza_id, cleansed_extras, REPLACE(value,' ','') AS unested_extra
+        FROM customer_order
+        CROSS APPLY STRING_SPLIT(CAST(cleansed_extras AS NVARCHAR), ',')
+   )
+
+SELECT TOP 1 ue.unested_extra, CAST(pt.topping_name AS NVARCHAR) AS topping_name, 
+            COUNT(ue.unested_extra) AS no_of_extras
+FROM unnested_extra AS ue
+INNER JOIN dbo.pizza_toppings AS pt
+ON ue.unested_extra=pt.topping_id
+GROUP BY ue.unested_extra, CAST(pt.topping_name AS NVARCHAR)
+ORDER BY no_of_extras DESC;
+
+-- 3. Answer
+
+WITH customer_order AS 
+   (
+        SELECT order_id, customer_id, pizza_id, order_time, 
+            CASE exclusions
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE exclusions
+            END AS cleansed_exclusions,
+            CASE extras
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE extras
+            END AS cleansed_extras
+        FROM dbo.customer_orders      
+   ),
+    unnested_exclusions AS
+    (
+        SELECT pizza_id, cleansed_exclusions, REPLACE(value,' ','') AS unested_exclusions
+        FROM customer_order
+        CROSS APPLY STRING_SPLIT(CAST(cleansed_exclusions AS NVARCHAR), ',')
+   )
+
+SELECT  TOP 1 ue.unested_exclusions, CAST(pt.topping_name AS NVARCHAR) AS topping_name, 
+            COUNT(ue.unested_exclusions) AS no_of_exclusions
+FROM unnested_exclusions AS ue
+INNER JOIN dbo.pizza_toppings AS pt
+ON ue.unested_exclusions=pt.topping_id
+GROUP BY ue.unested_exclusions, CAST(pt.topping_name AS NVARCHAR)
+ORDER BY no_of_exclusions DESC;
+
+-- 4. Answer
+
+ WITH customer_order AS 
+   (
+        SELECT order_id, customer_id, pizza_id, order_time, 
+            CASE exclusions
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE exclusions
+            END AS cleansed_exclusions,
+            CASE extras
+                WHEN '' THEN NULL
+                WHEN 'null' THEN NULL
+                ELSE extras
+            END AS cleansed_extras
+        FROM dbo.customer_orders      
+   ),
+   pizza_names AS
+   (
+    SELECT pizza_id, CAST(pizza_name AS VARCHAR) AS pizza_type
+    FROM dbo.pizza_names
+   )
+
+SELECT co.pizza_id, pn.pizza_type, co.cleansed_exclusions, co.cleansed_extras
+FROM customer_order AS co
+INNER JOIN pizza_names AS pn
+ON co.pizza_id=pn.pizza_id;
+
+
+
 
 
 
