@@ -45,7 +45,8 @@ C. Ingredient Optimisation
    Meat Lovers - Exclude Beef
    Meat Lovers - Extra Bacon
    Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
-5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients
+5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the 
+   customer_orders table and add a 2x in front of any relevant ingredients
    For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
 
@@ -557,33 +558,65 @@ ON ue.unested_exclusions=pt.topping_id
 GROUP BY ue.unested_exclusions, CAST(pt.topping_name AS NVARCHAR)
 ORDER BY no_of_exclusions DESC;
 
--- 4. Answer
+-- 4. Answer: No solution yet, but the code snippet below is a proposed solution from Resagratia 
 
- WITH customer_order AS 
-   (
-        SELECT order_id, customer_id, pizza_id, order_time, 
-            CASE exclusions
-                WHEN '' THEN NULL
-                WHEN 'null' THEN NULL
-                ELSE exclusions
-            END AS cleansed_exclusions,
-            CASE extras
-                WHEN '' THEN NULL
-                WHEN 'null' THEN NULL
-                ELSE extras
-            END AS cleansed_extras
-        FROM dbo.customer_orders      
-   ),
-   pizza_names AS
-   (
-    SELECT pizza_id, CAST(pizza_name AS VARCHAR) AS pizza_type
-    FROM dbo.pizza_names
-   )
+/* WITH orders AS (
+  SELECT *, ROW_NUMBER() OVER () AS row_index
+  FROM pizza_runner.customer_orders
+),
+exclusions AS (
+  SELECT order_id, pizza_id, row_index, topping_name
+  FROM (
+    SELECT * FROM (
+    	SELECT order_id, pizza_id, row_index,
+        UNNEST(STRING_TO_ARRAY(exclusions, ', ')) AS exclusions
+        FROM orders
+    ) AS tmp
+    WHERE exclusions NOT IN ('null' ,'')
+  ) AS temp_table
+  LEFT JOIN pizza_runner.pizza_toppings p
+  ON temp_table.exclusions::INTEGER = p.topping_id
+  
+),
+extras AS (
+  SELECT order_id, pizza_id, row_index, topping_name
+  FROM (
+    SELECT * FROM (
+    	SELECT order_id, pizza_id, row_index,
+        UNNEST(STRING_TO_ARRAY(extras, ', ')) AS extras
+        FROM orders
+    ) AS tmp
+    WHERE extras NOT IN ('null', '')
+  ) AS temp_table
+  LEFT JOIN pizza_runner.pizza_toppings p
+  ON temp_table.extras::INTEGER = p.topping_id
+  
+),
+exclusions_toppings AS (
+  SELECT row_index, 
+  STRING_AGG(topping_name, ', ') AS exclusions 
+  FROM exclusions
+  GROUP BY 1
+),
+extras_toppings AS (
+  SELECT row_index, 
+  STRING_AGG(topping_name, ', ') AS extras 
+  FROM extras
+  GROUP BY 1
+)
+SELECT CONCAT(pizza_name, 
+              CASE WHEN t.exclusions IS NULL THEN '' ELSE ' - Exclude ' END, 
+              t.exclusions,
+             CASE WHEN e.extras IS NULL THEN '' ELSE ' - Exclude ' END,
+              e.extras
+             ) AS pizza_ordered 
+FROM orders o
+LEFT JOIN exclusions_toppings t USING (row_index)
+LEFT JOIN extras_toppings e USING (row_index)
+LEFT JOIN pizza_runner.pizza_names p USING (pizza_id); */
 
-SELECT co.pizza_id, pn.pizza_type, co.cleansed_exclusions, co.cleansed_extras
-FROM customer_order AS co
-INNER JOIN pizza_names AS pn
-ON co.pizza_id=pn.pizza_id;
+-- 5. Answer
+
 
 
 
