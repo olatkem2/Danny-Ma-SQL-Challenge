@@ -297,7 +297,7 @@ SELECT ro.runner_id, AVG(DATEDIFF(MINUTE,co.order_time, ro.cleansed_pickup_time)
 FROM customer_orders AS co
 INNER JOIN cleansed_runner_orders AS ro
 ON ro.order_id=co.order_id
-GROUP BY ro.runner_id
+GROUP BY ro.runner_id;
 
 -- 3. Answer
 -- There is a positive relationship between number of pizza and the average time it takes to prepare
